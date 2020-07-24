@@ -1,4 +1,9 @@
-" regex color borrowed from
+if !exists('g:fern_renderer_devicons_loaded') || exists('g:fern_renderer_devicons_syntax_loaded')
+  finish
+endif
+let g:fern_renderer_devicons_syntax_loaded = 1
+
+" colors & match borrowed from
 " https://github.com/vwxyutarooo/nerdtree-devicons-syntax/blob/80b43c07c288136241715447e730bfdd817a120a/after/syntax/nerdtree.vim#L231
 let s:match_colors = {
   \ '(favicon)@<!\.(jpg|jpeg|bmp|png|gif|ico)$' : 'aqua',
@@ -85,17 +90,31 @@ let s:colors = extend({
   \ 'green'       : "8FAA54",
   \ 'lightGreen'  : "31B53E",
   \ 'white'       : "FFFFFF"
-  \ }, get(g:, 'fern_icon_colors', {}))
+  \ }, get(g:, 'fern_devicons_colors', {}))
 
-for [name, col] in items(s:colors)
-  " TODO: add cterm support
-  if col == ''
-    exe printf('hi! link FernLeafIcon_%s FernLeaf', name)
-  else
-    exe printf('hi FernLeafIcon_%s guifg=#%s', name, col)
-  endif
-endfor
+fun! s:syntax()
+  call g:fern#renderers.devicons().syntax()
+  for [rx, col] in items(s:match_colors)
+    exe printf('syn match FernLeafIcon_%s "\c\v^\s*[^ ]\ze.*%s"', col, rx)
+  endfor
+endf
 
-for [rx, col] in items(s:match_colors)
-  exe printf('syn match FernLeafIcon_%s "\c\v^\s*[^ ]\ze.*%s"', col, rx)
-endfor
+fun! s:highlight()
+  call g:fern#renderers.devicons().highlight()
+  for [name, col] in items(s:colors)
+    " TODO: add cterm support
+    exe col == '' ?
+      \ printf('hi! link FernLeafIcon_%s FernLeaf', name) :
+      \ printf('hi FernLeafIcon_%s guifg=#%s', name, col)
+  endfor
+endf
+
+fun! s:new()
+  " extend devicons syntax function
+  return extend(fern#renderer#devicons#new(), {
+  \ 'highlight': funcref('s:highlight'),
+  \ 'syntax': funcref('s:syntax'),
+  \ })
+endf
+
+call extend(g:fern#renderers, { 'devicons': funcref('s:new') })
